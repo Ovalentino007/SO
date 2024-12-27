@@ -17,7 +17,7 @@ int main(int argc, char *argv[]){
 
     int num_cpus, num_cores, num_threads, max_procesos;
     int frec_tick, frec_gen;
-    int policy_choice;
+    int policy_choice, quantum;
 
     printf("Bienvenido al simulador del mejor Sistema Operativo \n");
     //Configuración de la máquina
@@ -50,6 +50,9 @@ int main(int argc, char *argv[]){
     switch (policy_choice)
     {
     case 1:
+        printf("Indique un quantum para los procesos:\n ");
+        scanf("%d", &quantum);
+        scheduler_config.quantum = quantum;
         scheduler_config.policy = ROUND_ROBIN;
         break;
     case 2:

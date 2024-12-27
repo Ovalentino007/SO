@@ -5,7 +5,7 @@
 #include "timer.h"
 #include "structures.h"
 
-#define QUANTUM 4
+
 
 pthread_mutex_t sched_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t sched_cond = PTHREAD_COND_INITIALIZER;
@@ -33,8 +33,6 @@ void *scheduler_function(void *arg){
             printf("Scheduler activado con politica: Priority \n");
         }
         
-        
-        
         if (config->policy != ROUND_ROBIN && config->policy != PRIORITY) {
             printf("Error: política de planificación no válida (%d)\n", config->policy);
             pthread_mutex_unlock(&sched_mutex);
@@ -42,7 +40,7 @@ void *scheduler_function(void *arg){
         }
         switch (config->policy) {
             case ROUND_ROBIN:
-                schedule_round_robin(queue, machine);
+                schedule_round_robin(queue, machine,config->quantum);
                 break;
             case PRIORITY:
                 schedule_priority(queue);
@@ -54,39 +52,47 @@ void *scheduler_function(void *arg){
 
 }
 
-void schedule_round_robin(ProcessQueue *queue, Machine *machine){
+void schedule_round_robin(ProcessQueue *queue, Machine *machine, int quantum){
 
     pthread_mutex_lock(&queue->lock);
     int found_ready=0;
-    int proceso_tick_actual=0;
+    
     for (int i = 0; i < queue->capacidad_max; i++)
     {
         PCB *proceso = &queue->procesos[i];
-        if (proceso->state == READY && proceso->pid > 0 && proceso_tick_actual == 0)
+        if (proceso->state == READY && proceso->pid > 0)
         {
             found_ready=1;
             proceso->state = RUNNING;
-            proceso_tick_actual=1;
-            int run_time = (proceso->tiempo_restante < QUANTUM) ? proceso->tiempo_restante : QUANTUM;
+            printf("Ejecutando proceso PID= %d durante Quantum= %d \n", proceso->pid, quantum);
+
+            pthread_mutex_unlock(&queue->lock);
+            dispatch_process(queue,machine);
+            pthread_mutex_lock(&queue->lock);
+
+            int run_time = (proceso->tiempo_restante < quantum) ? proceso->tiempo_restante : quantum;
+
             proceso->tiempo_restante -= run_time;
-            printf("Ejecutando proceso PID= %d durante Quantum= %d \n", proceso->pid, run_time);
+            
             if (proceso->tiempo_restante <=0)
             {
                 proceso->state = TERMINATED;
                 printf("Proceso PID= %d terminado \n", proceso->pid);
             }else{
                 proceso->state = READY;
+                printf("Proceso PID=%d se reprograma con tiempo restante= %d \n", proceso->pid, proceso->tiempo_restante);
             }
-            proceso_tick_actual=0;
+            pthread_mutex_unlock(&queue->lock);
+            return;
         }   
     }
     if (!found_ready)
     {
         printf("No hay procesos READY para ejecutar \n");
     }
-    
     pthread_mutex_unlock(&queue->lock);
-    dispatch_process(queue,machine);
+    
+    
 }
 
 void schedule_priority(ProcessQueue *queue) {
@@ -149,7 +155,25 @@ Thread *find_available_thread(Machine *machine) {
     }
     return NULL;
 }
+void update_process_state(PCB *proceso, ProcessState new_state) {
+    if (!proceso) return;
 
+    proceso->state = new_state;
+
+    switch (new_state) {
+        case READY:
+            printf("Proceso PID=%d marcado como READY\n", proceso->pid);
+            break;
+        case RUNNING:
+            printf("Proceso PID=%d marcado como RUNNING\n", proceso->pid);
+            break;
+        case TERMINATED:
+            printf("Proceso PID=%d marcado como TERMINATED\n", proceso->pid);
+            break;
+        default:
+            printf("Proceso PID=%d en estado desconocido\n", proceso->pid);
+    }
+}
 void notify_scheduler(){
     pthread_mutex_lock(&sched_mutex);
     pthread_cond_signal(&sched_cond);
