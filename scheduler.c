@@ -9,14 +9,14 @@
 
 pthread_mutex_t sched_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t sched_cond = PTHREAD_COND_INITIALIZER;
-//int run_scheduler=1;
+int run_scheduler=1;
 void *scheduler_function(void *arg){
 
     ScheduleConfig *config = (ScheduleConfig *)arg;
     ProcessQueue *queue = config->queue;
     Machine *machine = config->machine;
 
-    while(1){
+    while(run_scheduler){
 
         pthread_mutex_lock(&sched_mutex);
         pthread_cond_wait(&sched_cond,&sched_mutex);
@@ -25,8 +25,16 @@ void *scheduler_function(void *arg){
             pthread_mutex_unlock(&sched_mutex);
             break;
         }
-
-        printf("Scheduler activado con politica: %d \n", config->policy);
+        if (config->policy == ROUND_ROBIN)
+        {
+            printf("Scheduler activado con politica: Round Robin \n");
+        }else if (config->policy == PRIORITY)
+        {
+            printf("Scheduler activado con politica: Priority \n");
+        }
+        
+        
+        
         if (config->policy != ROUND_ROBIN && config->policy != PRIORITY) {
             printf("Error: política de planificación no válida (%d)\n", config->policy);
             pthread_mutex_unlock(&sched_mutex);
@@ -50,13 +58,15 @@ void schedule_round_robin(ProcessQueue *queue, Machine *machine){
 
     pthread_mutex_lock(&queue->lock);
     int found_ready=0;
+    int proceso_tick_actual=0;
     for (int i = 0; i < queue->capacidad_max; i++)
     {
         PCB *proceso = &queue->procesos[i];
-        if (proceso->state == READY && proceso->pid > 0)
+        if (proceso->state == READY && proceso->pid > 0 && proceso_tick_actual == 0)
         {
             found_ready=1;
             proceso->state = RUNNING;
+            proceso_tick_actual=1;
             int run_time = (proceso->tiempo_restante < QUANTUM) ? proceso->tiempo_restante : QUANTUM;
             proceso->tiempo_restante -= run_time;
             printf("Ejecutando proceso PID= %d durante Quantum= %d \n", proceso->pid, run_time);
@@ -67,7 +77,7 @@ void schedule_round_robin(ProcessQueue *queue, Machine *machine){
             }else{
                 proceso->state = READY;
             }
-            
+            proceso_tick_actual=0;
         }   
     }
     if (!found_ready)
@@ -75,9 +85,8 @@ void schedule_round_robin(ProcessQueue *queue, Machine *machine){
         printf("No hay procesos READY para ejecutar \n");
     }
     
-    dispatch_process(queue,machine);
     pthread_mutex_unlock(&queue->lock);
-    
+    dispatch_process(queue,machine);
 }
 
 void schedule_priority(ProcessQueue *queue) {
@@ -103,14 +112,13 @@ void schedule_priority(ProcessQueue *queue) {
 }
 
 void dispatch_process(ProcessQueue *queue, Machine *machine) {
-    pthread_mutex_lock(&queue->lock);
+    
     if (!machine)
     {
         printf("Error: maquina no inicializada. \n");
         return;
     }
-    
-
+    pthread_mutex_lock(&queue->lock);
     for (int i = 0; i < queue->cont; i++) {
         PCB *proceso = &queue->procesos[i];
         if (proceso->state == RUNNING) {
@@ -148,8 +156,8 @@ void notify_scheduler(){
     pthread_mutex_unlock(&sched_mutex);
 }
 void stop_scheduler(){
-    //pthread_mutex_lock(&sched_mutex);
-    //run_scheduler=0;
-    //pthread_cond_signal(&sched_cond);
-    //pthread_mutex_unlock(&sched_mutex);
+    pthread_mutex_lock(&sched_mutex);
+    run_scheduler=0;
+    pthread_cond_signal(&sched_cond);
+    pthread_mutex_unlock(&sched_mutex);
 }

@@ -13,6 +13,7 @@ typedef struct{
     Machine *machine;
     SchedulePolicy policy;
 }ScheduleConfig;
+
 void *scheduler_function(void *arg);
 void schedule_round_robin(ProcessQueue *queue, Machine *machine);
 void schedule_priority(ProcessQueue *queue);

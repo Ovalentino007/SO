@@ -40,8 +40,8 @@ int main(int argc, char *argv[]){
     generator_config.frecuencia_gen=frec_gen;
     //Configuración del Scheduler
     printf("Seleccione la política de planificación:\n");
-    printf("0. Round Robin \n");
-    printf("1. Prioridad \n");
+    printf("1. Round Robin \n");
+    printf("2. Prioridad \n");
     printf("Opcion: ");
     scanf("%d", &policy_choice);
     ScheduleConfig scheduler_config;

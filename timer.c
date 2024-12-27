@@ -18,6 +18,7 @@ void *timer_function(void *arg){
     
     int frecuencia_tick = config->frecuencia_tick;
     int cont=0;
+    int num=0;
 
     while(1){
         pthread_mutex_lock(&clock_mutex);
@@ -31,7 +32,8 @@ void *timer_function(void *arg){
         cont++;
         if (cont>=frecuencia_tick)
         {
-            printf("Tick generado por el timer. Contador: %d \n", cont);
+            num++;
+            printf("Tick %d generado por el timer. Cada  %d ciclos \n", num, cont);
             notify_scheduler();
             //notify_proc_generator();
             //notify_dispatcher();
