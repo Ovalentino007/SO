@@ -18,7 +18,6 @@ void add_process(ProcessQueue *queue, PCB process){
     if(queue->cont < queue->capacidad_max){
         queue->procesos[queue->cont++] = process;
         printf("Proceso añadido: PID=%d \n", process.pid);
-        notify_scheduler();
     }else{
         printf("Error: Cola de procesoss llena \n");
         printf("No se pudo añadir el proceso PID=%d \n", process.pid);

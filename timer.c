@@ -35,8 +35,6 @@ void *timer_function(void *arg){
             num++;
             printf("Tick %d generado por el timer. Cada  %d ciclos \n", num, cont);
             notify_scheduler();
-            //notify_proc_generator();
-            //notify_dispatcher();
             cont=0;
         }
         pthread_mutex_unlock(&clock_mutex);

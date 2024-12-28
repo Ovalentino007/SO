@@ -68,6 +68,8 @@ int main(int argc, char *argv[]){
     init_machine(&machine, num_cpus, num_cores, num_threads);
 
 
+    printf("El sistema esta ejecutandose. Presione Ctrl+C para detener. \n");
+    
     //Creacion de hilos
     pthread_t  timer_thread, generator_thread, scheduler_thread;
 
@@ -76,7 +78,7 @@ int main(int argc, char *argv[]){
     pthread_create(&scheduler_thread, NULL, scheduler_function, &scheduler_config);
     
     //Simulación
-    printf("El sistema esta ejecutandose. Presione Ctrl+C para detener. \n");
+    
     sleep(25);
 
     //Detención de hilos y subsistemas
