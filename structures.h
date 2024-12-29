@@ -56,4 +56,5 @@ void delete_process_queue(ProcessQueue *queue);
 PCB *get_next_ready_process(ProcessQueue *queue);
 void init_machine(Machine *machine, int num_cpus, int num_cores, int num_threads);
 void delete_machine(Machine *machine);
+
 #endif

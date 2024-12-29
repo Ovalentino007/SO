@@ -8,6 +8,8 @@
 #include "scheduler.h"
 #include "structures.h"
 
+// Para compilar gcc -Wall -o simulador main.c clock.c timer.c proc_generator.c scheduler.c structures.c -lpthread
+
 ProcessQueue proc_queue;
 Machine machine;
 Timerconf tim_config;
@@ -62,12 +64,13 @@ int main(int argc, char *argv[]){
         printf("Opción invalida. Usando Round Robin por defecto. \n");
         scheduler_config.policy = ROUND_ROBIN;
     }
+    
     //Inicialización de estructuras
     init_clock();
     init_process_queue(&proc_queue,max_procesos);
     init_machine(&machine, num_cpus, num_cores, num_threads);
 
-
+    //Comienzo
     printf("El sistema esta ejecutandose. Presione Ctrl+C para detener. \n");
     
     //Creacion de hilos
@@ -77,8 +80,7 @@ int main(int argc, char *argv[]){
     pthread_create(&generator_thread, NULL, proc_generator_function, &generator_config);
     pthread_create(&scheduler_thread, NULL, scheduler_function, &scheduler_config);
     
-    //Simulación
-    
+    //Simulación durante x segundos
     sleep(25);
 
     //Detención de hilos y subsistemas

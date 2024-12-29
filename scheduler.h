@@ -24,5 +24,5 @@ void notify_scheduler();
 void dispatch_process_rr(ProcessQueue *queue, Machine *machine, int quantum);
 void dispatch_process_priority(PCB *proceso, Machine *machine);
 void stop_scheduler();
-//void dispatch_process(ProcessQueue *queue);
+
 #endif

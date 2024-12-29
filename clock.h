@@ -9,4 +9,5 @@ void *clock_function(void *arg);
 void init_clock();
 void stop_clock();
 int get_clock_cycles();
+
 #endif 
