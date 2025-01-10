@@ -62,13 +62,13 @@ void init_machine(Machine *machine, int cpus, int cores, int threads){ //Inicial
     machine-> num_cores = cores;
     machine-> num_threads = threads;
     machine->cpus = malloc(cpus*sizeof(CPU));
-
+    
     if (!machine->cpus)
     {
         printf("Error: no se pudo asignar memoria para las CPUS \n");
         return;
     }
-
+    int thread_id = -1;
     for (int i = 0; i < cpus; i++)
     {
         machine->cpus[i].cores = malloc(cores * sizeof(Core));
@@ -83,13 +83,22 @@ void init_machine(Machine *machine, int cpus, int cores, int threads){ //Inicial
         for (int j = 0; j < cores; j++)
         {
             machine->cpus[i].cores[j].threads = malloc(threads*sizeof(Thread));
-
             if (!machine->cpus[i].cores[j].threads)
             {
                 printf("Error: no se pudo asignar memoria para los Threads \n");
                 delete_machine(machine);
                 return;
             }
+
+            for (int k = 0; k < threads; k++)
+            {
+                Thread *thread = &machine->cpus[i].cores[j].threads[k];
+                thread->id = ++thread_id;
+                thread->procesos=NULL;
+                thread->available=1;
+                printf("Hilo creado: ID = %d, Core = %d, CPU = %d \n", thread->id, j, i);
+            }
+            
         }
         
     }
@@ -111,3 +120,4 @@ void delete_machine(Machine *machine){ //Liberamos la memoria asignada para la m
 
     free(machine->cpus);
 }
+

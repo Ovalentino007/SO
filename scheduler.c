@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "scheduler.h"
 #include "clock.h"
 #include "timer.h"
@@ -8,6 +9,7 @@
 pthread_mutex_t sched_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t sched_cond = PTHREAD_COND_INITIALIZER;
 int run_scheduler=1;
+static int last_thread_used = 0;  
 
 void *scheduler_function(void *arg){
 
@@ -118,21 +120,27 @@ void dispatch_process_rr(ProcessQueue *queue, Machine *machine, int quantum){ //
         PCB *proceso = &queue->procesos[i];
         
         if (proceso->state == RUNNING) {
-            
+
             Thread *available_thread = find_available_thread(machine);
-            if (available_thread) {
+            if (available_thread->available) {
                 
                 available_thread->procesos = proceso;
+                available_thread->available = 0;
+                int id = available_thread->id;
                 int run_time = (proceso->tiempo_restante < quantum) ? proceso->tiempo_restante : quantum;
                 proceso->tiempo_restante -= run_time;
                 
-                printf("Despachando proceso PID=%d a un hilo\n", proceso->pid);
+                printf("Despachando proceso PID=%d a el hilo  %d\n", proceso->pid, id);
                 printf("Ejecutando proceso PID= %d durante Quantum= %d \n", proceso->pid, quantum);
                 
                 if (proceso->tiempo_restante <=0) //Si el tiempo de ejecución del proceso ha terminado
                 {
                     proceso->state = TERMINATED;
+
                     printf("Proceso PID= %d terminado \n", proceso->pid);
+
+                    available_thread->procesos=NULL; //Liberamos el hilo despues de ejecución
+                    available_thread->available=1;
 
                 }else{ //Si queda tiempo por ejecutar del proceso
 
@@ -140,7 +148,6 @@ void dispatch_process_rr(ProcessQueue *queue, Machine *machine, int quantum){ //
                     printf("Proceso PID=%d se reprograma con tiempo restante= %d \n", proceso->pid, proceso->tiempo_restante);
                 }
 
-                available_thread->procesos=NULL; //Liberamos el hilo despues de ejecución
             
             }else{
                 printf("No hay hilos disponibles para el proceso PID=%d \n", proceso->pid);
@@ -161,19 +168,28 @@ void dispatch_process_priority(PCB *proceso, Machine *machine){ //Asignamos un h
     
     Thread *available_thread = find_available_thread(machine);
 
-    if (available_thread) {
+    if (available_thread->available) {
 
             available_thread->procesos = proceso;
+            available_thread->available = 0;
+            int id = available_thread->id;
 
-            printf("Despachando proceso PID=%d a un hilo\n", proceso->pid);
+            printf("Despachando proceso PID=%d a un hilo %d\n", proceso->pid, id);
             printf("Ejecutando proceso PID= %d hasta su finalización \n", proceso->pid);
             
-            proceso->tiempo_restante=0;
+            while (proceso->tiempo_restante > 0)
+            {
+                //sleep(1);
+                proceso->tiempo_restante--;
+                printf("Proceso PID=%d ejecutándose, tiempo restante=%d\n", proceso->pid, proceso->tiempo_restante);
+            }
+            
             proceso->state = TERMINATED; //El proceso ha terminado su ejecución
             
             printf("Proceso PID= %d terminado \n", proceso->pid);
             
             available_thread->procesos=NULL; //Liberamos el hilo despues de ejecución
+            available_thread->available=1;
     }else{
             printf("No hay hilos disponibles para el proceso PID=%d \n", proceso->pid);
     }  
@@ -224,19 +240,24 @@ void schedule_priority(ProcessQueue *queue, Machine *machine) { //Ejecutamos aqu
     
 }
 
-Thread *find_available_thread(Machine *machine) { //Encontramos un hilo disponible en la máquina
 
-    for (int i = 0; i < machine->num_cpus; i++) {
-        for (int j = 0; j < machine->num_cores; j++) {
-            for (int k = 0; k < machine->num_threads; k++) {
-                Thread *thread = &machine->cpus[i].cores[j].threads[k];
-                if (!thread->procesos) {  // Hilo libre
-                    return thread;
-                }
-            }
+Thread *find_available_thread(Machine *machine) {
+    int total_threads = machine->num_cpus * machine->num_cores * machine->num_threads;
+    int start_index = last_thread_used;
+
+    for (int offset = 0; offset < total_threads; offset++) {
+        int index = (start_index + offset) % total_threads;
+        int cpu_index = index / (machine->num_cores * machine->num_threads);
+        int core_index = (index / machine->num_threads) % machine->num_cores;
+        int thread_index = index % machine->num_threads;
+
+        Thread *thread = &machine->cpus[cpu_index].cores[core_index].threads[thread_index];
+        if (thread->available) {
+            last_thread_used = index + 1;
+            return thread;
         }
     }
-    return NULL;
+    return NULL;  // No hay hilos disponibles
 }
 
 //No es necesario, no lo usamos

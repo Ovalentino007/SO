@@ -66,9 +66,9 @@ int main(int argc, char *argv[]){
     }
     
     //Inicialización de estructuras
+    init_machine(&machine, num_cpus, num_cores, num_threads);
     init_clock();
     init_process_queue(&proc_queue,max_procesos);
-    init_machine(&machine, num_cpus, num_cores, num_threads);
 
     //Comienzo
     printf("El sistema esta ejecutandose. Presione Ctrl+C para detener. \n");
@@ -77,11 +77,18 @@ int main(int argc, char *argv[]){
     pthread_t  timer_thread, generator_thread, scheduler_thread;
 
     pthread_create(&timer_thread, NULL, timer_function, &tim_config);
-    pthread_create(&generator_thread, NULL, proc_generator_function, &generator_config);
+    
+    if (scheduler_config.policy== PRIORITY)
+    {
+        pthread_create(&generator_thread, NULL, proc_generator_function_priority, &generator_config);
+    }else{
+        pthread_create(&generator_thread, NULL, proc_generator_function_rr, &generator_config);
+    }
+    
     pthread_create(&scheduler_thread, NULL, scheduler_function, &scheduler_config);
     
     //Simulación durante x segundos
-    sleep(25);
+    sleep(50);
 
     //Detención de hilos y subsistemas
     stop_clock();
